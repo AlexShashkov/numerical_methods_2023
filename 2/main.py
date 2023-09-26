@@ -43,6 +43,12 @@ if __name__ == '__main__':
     basic_h1 = Kutta(0.1)
     basic_h2 = Kutta(0.01)
 
+    print("="*50)
+    print('h = 0.1')
+    print(basic_h1[1])
+    print("="*50)
+    print('h = 0.01')
+    print(basic_h2[1])
 
     plot(basic_h1, basic_h2, "red", "green", "Рунге-Кутты")
     plt.title("Аппроксимации")

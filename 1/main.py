@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 
 # ВАРИАНТ 2
 
-func = lambda x, y: -y/(2*x)+x**2.0
+func = lambda x, y: -y/(2*x)+np.power(x, 2)
 
 
 def plot(a, b, c_a, c_b, method):
@@ -57,6 +57,19 @@ basic_h1 = Euler(0.1, False)
 basic_h2 = Euler(0.01, False)
 improved_h1 = Euler(0.1)
 improved_h2 = Euler(0.01)
+
+print("="*50)
+print('h = 0.1')
+print("Basic Euler")
+print(basic_h1[1])
+print("Improved Euler")
+print(improved_h1[1])
+print("="*50)
+print('h = 0.01')
+print("Basic Euler")
+print(basic_h2[1])
+print("Improved Euler")
+print(improved_h2[1])
 
 
 plot(basic_h1, basic_h2, "red", "green", "Эйлер")
