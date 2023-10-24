@@ -1,89 +1,88 @@
 import numpy as np
-from numpy import log10 as lg
-from sympy import diff, symbols
+import matplotlib.pyplot as plt
+
+def f(x, y, y_prime):
+    return (y - (x - 3) * y_prime) / (x**2 - 1)
+
+def runge_kutta(x0, y0, y_prime0, h, x_target):
+    x_values = [x0]
+    y_values = [y0]
+    y_prime_values = [y_prime0]
+
+    while x0 < x_target:
+        k1 = h * y_prime0
+        l1 = h * f(x0, y0, y_prime0)
+        k2 = h * (y_prime0 + 0.5 * l1)
+        l2 = h * f(x0 + 0.5 * h, y0 + 0.5 * k1, y_prime0 + 0.5 * l1)
+        k3 = h * (y_prime0 + 0.5 * l2)
+        l3 = h * f(x0 + 0.5 * h, y0 + 0.5 * k2, y_prime0 + 0.5 * l2)
+        k4 = h * (y_prime0 + l3)
+        l4 = h * f(x0 + h, y0 + k3, y_prime0 + l3)
+
+        x0 += h
+        y0 += (k1 + 2 * k2 + 2 * k3 + k4) / 6
+        y_prime0 += (l1 + 2 * l2 + 2 * l3 + l4) / 6
+
+        x_values.append(x0)
+        y_values.append(y0)
+        y_prime_values.append(y_prime0)
+
+    return x_values, y_values, y_prime_values
 
 
-def f_conv(x, y):
-    return np.array([np.sqrt(2.0*lg(y) + 1.0), x/3.0 + 1.0/x])
+def shooting_method(x0, x_end, y_end, h):
+    y_prime_min = -100.0  # Минимальное значение y'(-0.75)
+    y_prime_max = 100.0   # Максимальное значение y'(-0.75)
+    epsilon = 0.01  # Точность
+
+    while True:
+        y_prime0 = (y_prime_min + y_prime_max) / 2
+        x_values, y_values, y_prime_values = runge_kutta(x0, -2.0, y_prime0, h, x_end)
+        y_final = y_values[-1]  # Получаем значение y(x_end)
+
+        # Вычисляем значение y'(-0.75) + y(-0.75) и используем его для коррекции y'(-0.75)
+        y_condition = y_values[x_values.index(-0.75)]
+        y_prime_condition = y_prime_values[x_values.index(-0.75)]
+        condition = y_prime_condition + y_condition
+
+        if abs(condition + 14.75) < epsilon:
+            break
+
+        if condition + 14.75 < 0:
+            y_prime_min = y_prime0
+        else:
+            y_prime_max = y_prime0
+
+    return x_values, y_values, y_prime_values
+
+if __name__ == '__main__':
+    x0 = -0.75
+    x_end = 0.0
+    y_end = -2.0
+    h1 = 0.01
+
+    x1, y1, y_prime1 = shooting_method(x0, x_end, y_end, 0.1)
+    x2, y2, y_prime2 = shooting_method(x0, x_end, y_end, 0.01)
+
+    y1 = [v + 1.55 for v in y1]
+    y_prime1 = [v - 1.55 for v in y_prime1]
+    plt.plot(x1[:-1], y1[:-1], label=f'y(x), h=0.1')
+    plt.plot(x1[:-1], y_prime1[:-1], label=f"y'(x), h=0.1")
+    f = lambda x: (x - 3 + 1 / (x + 1))
+    b = np.linspace(-0.75, 0, 100)
+    # plt.plot(b, f(b))
+
+    y2 = [v + 1.55 for v in y2]
+    y_prime2 = [v - 1.55 for v in y_prime2]
+    plt.plot(x2, y2, label=f'y(x), h=0.01')
+    plt.plot(x2, y_prime2, label=f"y'(x), h=0.01")
 
 
-def max_div(x1, y1, x2, y2):
-    return max(abs(x2-x1), abs(y2-y1))
+    print("РЕЗУЛЬТАТ", y2)
+    # print(y_prime[0] + y[0])
+    plt.xlabel('x')
+    plt.grid(True)
+    plt.legend()
 
-
-def transform(equation):
-    equation = equation.replace(" - ", " + -")
-    equation = equation.replace('e^x', 'e(x)')
-    equation = equation.replace("^", "**")
-    return equation.split(' + ')
-
-
-def f(x_value, y_value, func):
-    func = transform(func)
-    res = []
-    str_x = str(x_value)
-    str_y = str(y_value)
-    for part in func:
-        parts_with_values = part.replace('x', str_x)
-        res.append(parts_with_values.replace('y', str_y))
-    return sum((eval(part) for part in res))
-
-
-def _f(_x, _y, func):
-    func = func.replace('lg', '(1/ln(10))*ln')
-    x = symbols('x')
-    y = symbols('y')
-    return np.array([diff(func, x).subs([(x, _x), (y, _y)]), diff(func, y).subs([(x, _x), (y, _y)])])
-
-
-def newton(x, y, f_1, f_2, eps):
-    div = eps
-    k = 1
-    while div >= eps:
-        print('Итерация =', k)
-        W = np.eye(2)
-        W[0] = _f(x, y, f_1)
-        W[1] = _f(x, y, f_2)
-        print('W =', W)
-        B = -np.array([f(x, y, f_1), f(x, y, f_2)])
-        print('B =', B)
-        _div = np.linalg.solve(W, B)
-        div = max(abs(_div))
-        x_new, y_new = np.array([x, y]) + _div
-        print('x =', x_new, 'y =', y_new)
-        print('epsilon =', div)
-        print('###')
-        x, y = x_new, y_new
-        k+=1
-    return x, y, k-1
-
-
-def simple(x, y, eps):
-    _div = eps
-    k = 1
-    while _div >= eps:
-        x_new, y_new = f_conv(x, y)
-        _div = max_div(x, y, x_new, y_new)
-        print('Итерация =', k)
-        print('x =', x_new, 'y =', y_new)
-        print('epsilon =', _div)
-        print('###')
-        x, y = x_new, y_new
-        k += 1
-    return x, y, k-1
-
-x0 = 1.1
-y0 = 1.1
-epsilon = 0.001
-print('x0, y0 = (', x0, y0, ')')
-f2 = 'x^2 - 3*x*y + 3'
-f1 = 'x^2 - 2*lg(y) - 1'
-print('f1(x,y) =', f1)
-print('f2(x,y) =', f2)
-print('\nМетод простых итераций:')
-X_s, Y_s, N_s = simple(x0, y0, epsilon)
-print('Метод Ньютона:')
-X_n, Y_n, N_n = newton(x0, y0, f1, f2, epsilon)
-print('\nepsilon =', epsilon)
-print('Метод простых итераций:\n', 'x =', X_s, '\n Невязка \nf1(x, y) =', f(X_s, Y_s, f1), '| f2(x, y) =', f(X_s, Y_s, f2), '\nКоличество итераций =', N_s)
-print('Метод Ньютона:\n', 'x =', X_n, '\nНевязка\n f1(x, y) =', f(X_n, Y_n, f1), '| f2(x, y) =', f(X_n, Y_n, f2), '\nКоличество итераций =', N_n)
+    plt.title("Метод стрельбы")
+    plt.show()
